@@ -19,7 +19,7 @@ st.title("🏓 탁구 선수의 직업 경력 통계 분석")
 st.write("프로 탁구 선수들의 경기 수, 승률, 우승 기록 등을 시각화하여 한눈에 분석할 수 있는 대시보드입니다.")
 
 # -------------------------------
-# 3. 예시 데이터 생성 (실제 데이터로 교체 가능)
+# 3. 예시 데이터 생성
 # -------------------------------
 players = {
     "선수명": ["판젠동", "마롱", "장본", "이상수", "장우진", "티모 볼"],
@@ -33,66 +33,74 @@ players = {
 
 df = pd.DataFrame(players)
 
-st.subheader("📋 선수 기본 데이터")
-st.dataframe(df, use_container_width=True)
-
 # -------------------------------
-# 4. 승률 비교 그래프
+# 4. 사이드바 추가
 # -------------------------------
-st.subheader("📈 선수별 승률 비교")
+st.sidebar.header("⚙️ 필터 설정")
 
-fig_winrate = px.bar(
-    df,
-    x="선수명",
-    y="승률(%)",
-    color="국가",
-    title="선수 승률 비교",
-    text="승률(%)"
+# 국가 선택
+country_filter = st.sidebar.multiselect(
+    "국가 선택:",
+    options=df["국가"].unique(),
+    default=df["국가"].unique()
 )
 
-fig_winrate.update_layout(xaxis_title="선수", yaxis_title="승률 (%)")
-st.plotly_chart(fig_winrate, use_container_width=True)
+# 선수 검색
+search_name = st.sidebar.text_input("선수 검색 (예: 마롱)")
 
-# -------------------------------
-# 5. 경기 수 비교
-# -------------------------------
-st.subheader("🏆 선수별 커리어 경기 수")
-
-fig_matches = px.line(
-    df,
-    x="선수명",
-    y="커리어 경기 수",
-    markers=True,
-    title="커리어 경기 수 비교"
+# 정렬 옵션
+sort_option = st.sidebar.selectbox(
+    "정렬 기준:",
+    ["승률(%)", "우승 횟수", "커리어 경기 수"]
 )
 
-st.plotly_chart(fig_matches, use_container_width=True)
+# 데이터 보이기 여부
+show_table = st.sidebar.checkbox("선수 데이터 표시", value=True)
 
-# -------------------------------
-# 6. 우승 횟수 비교
-# -------------------------------
-st.subheader("🥇 선수 우승 횟수 비교")
-
-fig_titles = px.bar(
-    df,
-    x="선수명",
-    y="우승 횟수",
-    color="선수명",
-    title="우승 횟수"
+# 그래프 선택
+graph_type = st.sidebar.radio(
+    "그래프 종류 선택:",
+    ["승률 비교", "경기 수 비교", "우승 횟수 비교", "국가 분포"]
 )
 
-st.plotly_chart(fig_titles, use_container_width=True)
+# -------------------------------
+# 5. 필터 적용
+# -------------------------------
+filtered_df = df[df["국가"].isin(country_filter)]
+
+if search_name:
+    filtered_df = filtered_df[filtered_df["선수명"].str.contains(search_name)]
+
+filtered_df = filtered_df.sort_values(by=sort_option, ascending=False)
 
 # -------------------------------
-# 7. 국가별 분포
+# 6. 데이터 테이블 표시
 # -------------------------------
-st.subheader("🌍 국가별 선수 분포")
+if show_table:
+    st.subheader("📋 선수 기본 데이터")
+    st.dataframe(filtered_df, use_container_width=True)
 
-fig_country = px.pie(
-    df,
-    names="국가",
-    title="국가별 선수 비율"
-)
+# -------------------------------
+# 7. 선택된 그래프 출력
+# -------------------------------
+if graph_type == "승률 비교":
+    st.subheader("📈 선수별 승률 비교")
+    fig = px.bar(filtered_df, x="선수명", y="승률(%)", color="국가", text="승률(%)")
+    st.plotly_chart(fig, use_container_width=True)
 
-st.plotly_chart(fig_country, use_container_width=True)
+elif graph_type == "경기 수 비교":
+    st.subheader("🏆 선수별 커리어 경기 수")
+    fig = px.line(filtered_df, x="선수명", y="커리어 경기 수", markers=True)
+    st.plotly_chart(fig, use_container_width=True)
+
+elif graph_type == "우승 횟수 비교":
+    st.subheader("🥇 선수 우승 횟수 비교")
+    fig = px.bar(filtered_df, x="선수명", y="우승 횟수", color="선수명")
+    st.plotly_chart(fig, use_container_width=True)
+
+elif graph_type == "국가 분포":
+    st.subheader("🌍 국가별 선수 분포")
+    fig = px.pie(filtered_df, names="국가")
+    st.plotly_chart(fig, use_container_width=True)
+
 
